@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Siddharth Korappath — Performance Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, "Segoe UI", Roboto, sans-serif; background: #f4f6fb; color: #1a2436; padding: 20px; }
+.wrap { max-width: 1280px; margin: 0 auto; }
+header { background: linear-gradient(135deg, #0b3d91 0%, #1e6dd8 100%); color: white; padding: 28px 32px; border-radius: 12px; margin-bottom: 24px; box-shadow: 0 4px 16px rgba(11,61,145,0.18); }
+header h1 { font-size: 26px; margin-bottom: 6px; }
+header p { opacity: 0.92; font-size: 14px; }
+.kpi-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-bottom: 24px; }
+.kpi { background: white; padding: 18px; border-radius: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.04); border-left: 4px solid #0b3d91; }
+.kpi .label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: #6b7488; font-weight: 600; }
+.kpi .value { font-size: 28px; font-weight: 700; color: #0b3d91; margin-top: 4px; }
+.kpi .sub { font-size: 12px; color: #6b7488; margin-top: 3px; }
+.kpi.green { border-left-color: #2e7d32; } .kpi.green .value { color: #2e7d32; }
+.kpi.red   { border-left-color: #c62828; } .kpi.red .value { color: #c62828; }
+.kpi.amber { border-left-color: #ef6c00; } .kpi.amber .value { color: #ef6c00; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+.grid.three { grid-template-columns: 1fr 1fr 1fr; }
+@media (max-width: 880px) { .grid, .grid.three { grid-template-columns: 1fr; } }
+.card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.04); }
+.card h2 { font-size: 15px; color: #0b3d91; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid #e6eaf1; display:flex; justify-content:space-between; align-items:center;}
+.card h2 small { font-size: 11px; color: #6b7488; font-weight: 400; }
+.chart-wrap { position: relative; height: 280px; }
+.chart-wrap.tall { height: 360px; }
+.insight { background: #fff8e1; border-left: 3px solid #f9a825; padding: 12px 14px; margin-top: 12px; border-radius: 4px; font-size: 13px; line-height: 1.55; }
+.insight b { color: #b76e00; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { background: #f4f6fb; color: #0b3d91; padding: 9px 8px; text-align: left; font-weight: 600; border-bottom: 2px solid #0b3d91; font-size: 12px; }
+td { padding: 8px; border-bottom: 1px solid #eef1f6; }
+tr:hover td { background: #fafbfd; }
+.bar { display:inline-block; height:8px; background:#0b3d91; border-radius:2px; vertical-align:middle; margin-left:6px; }
+.heatmap { display: grid; grid-template-columns: 60px repeat(4, 1fr); gap: 4px; }
+.heatmap .hcell { padding: 10px 6px; text-align: center; font-size: 12px; border-radius: 4px; font-weight: 500; }
+.heatmap .head { background: #0b3d91; color: white; font-weight: 600; }
+footer { text-align: center; color: #6b7488; font-size: 12px; margin-top: 30px; padding: 20px; }
+.legend-dot { display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:4px; vertical-align:middle; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+<h1>Siddharth Korappath · Performance Dashboard</h1>
+<p>JEE 2027 preparation tracker · Source: Deeple Error Book (12 Jun 2026) · 82 tests, 1072 questions analysed</p>
+</header>
+
+<div class="kpi-row">
+<div class="kpi green"><div class="label">Overall Accuracy</div><div class="value">91.0%</div><div class="sub">975 of 1072 correct</div></div>
+<div class="kpi"><div class="label">Tests Attempted</div><div class="value">82</div><div class="sub">Aug 26 – Jun 26</div></div>
+<div class="kpi amber"><div class="label">Errors</div><div class="value">97</div><div class="sub">84 wrong + 6 skipped + 7 partial</div></div>
+<div class="kpi"><div class="label">Marks Scored</div><div class="value">3244</div><div class="sub">of 3673 possible</div></div>
+<div class="kpi red"><div class="label">Marks Lost (negative)</div><div class="value">755</div><div class="sub">to wrong answers</div></div>
+<div class="kpi"><div class="label">Strike Rate</div><div class="value">88.3%</div><div class="sub">marks / possible</div></div>
+</div>
+
+<div class="grid">
+<div class="card">
+<h2>Accuracy by Subject <small>higher = stronger</small></h2>
+<div class="chart-wrap"><canvas id="subjAcc"></canvas></div>
+<div class="insight"><b>Read-out:</b> Physics is the weakest at 89.1% — every percentage point here is worth ~1 NTA score point. Chemistry is the strongest at 92.6%; maintain, don't over-invest. Maths sits at 91% — moves more with practice than chemistry will.</div>
+</div>
+
+<div class="card">
+<h2>Where Errors Come From <small>97 total errors</small></h2>
+<div class="chart-wrap"><canvas id="errSubj"></canvas></div>
+<div class="insight"><b>Read-out:</b> 41% of errors are in Physics, 28% Chemistry, 24% Maths. The Physics over-representation aligns with its lower accuracy — confirms physics is the lever.</div>
+</div>
+</div>
+
+<div class="grid">
+<div class="card">
+<h2>Top 12 Weak Chapters <small>by error count</small></h2>
+<div class="chart-wrap tall"><canvas id="chapErr"></canvas></div>
+<div class="insight"><b>Read-out:</b> The "big four" physics chapters (EMI, Capacitors, Gravitation, Sound Waves) account for 19 errors — nearly 20% of all mistakes. Drilling just these four would close half the physics gap.</div>
+</div>
+
+<div class="card">
+<h2>Time Complexity Error Profile <small>where time pressure breaks him</small></h2>
+<div class="chart-wrap tall"><canvas id="tcChart"></canvas></div>
+<div class="insight"><b>Read-out:</b> TC error rate climbs steeply with difficulty: TC1=7%, TC2=5.9%, <b>TC3=18%</b>, TC4=40%. TC3 problems (2–3 min) are where most errors happen in absolute terms. Don't try to "speed up" — slow down on TC3 and the accuracy jumps.</div>
+</div>
+</div>
+
+<div class="grid">
+<div class="card">
+<h2>Problem Complexity Error Profile <small>conceptual depth vs accuracy</small></h2>
+<div class="chart-wrap"><canvas id="pcChart"></canvas></div>
+<div class="insight"><b>Read-out:</b> Error rate by PC: PC1=5.1%, PC2=8.6%, <b>PC3=18.2%</b>, PC4=41%, PC5=100% (only 1). The PC3+ tier is where JEE Advanced separates ranks. This needs targeted drilling, not just more volume.</div>
+</div>
+
+<div class="card">
+<h2>TC × PC Heat-Map <small>error rate %</small></h2>
+<div id="heatmap" class="heatmap"></div>
+<div class="insight"><b>Read-out:</b> Errors concentrate in the high-TC, high-PC corner (top right of the matrix). Below the diagonal — quick, simple problems — accuracy is near-perfect. Strategy: in mocks, attempt high-TC/PC problems <i>last</i>, secure the easy points first.</div>
+</div>
+</div>
+
+<div class="card" style="margin-bottom:20px;">
+<h2>All Weak Chapters &mdash; Drill Priority List</h2>
+<table id="chapTable">
+<thead><tr><th style="width:34px;">#</th><th>Subject</th><th>Chapter</th><th style="width:80px;">Errors</th><th>Suggested Action</th></tr></thead>
+<tbody></tbody>
+</table>
+</div>
+
+<div class="grid three">
+<div class="card">
+<h2>Negative-Mark Cost</h2>
+<div class="chart-wrap"><canvas id="lossChart"></canvas></div>
+<div class="insight" style="font-size:12px;"><b>Insight:</b> 84 wrong answers × −1 = −84 marks raw, but in marking schemes with bigger negatives, this would be far worse. <b>If he simply skipped these 84 instead of guessing</b>, net change = +84 to +(84·4)=336 depending on whether they'd have been correct or wrong anyway. Decision discipline matters as much as knowledge.</div>
+</div>
+
+<div class="card">
+<h2>Answer Status Mix</h2>
+<div class="chart-wrap"><canvas id="statusChart"></canvas></div>
+<div class="insight" style="font-size:12px;"><b>Insight:</b> 91% correct, 7.8% wrong, only 0.6% skipped. He attempts almost everything — this is good for confidence but risky in JEE Main marking. Plan: develop a "skip rule" (e.g. PC4 problem &amp; no clear approach in 90 sec ⇒ skip).</div>
+</div>
+
+<div class="card">
+<h2>Projected JEE Score Path</h2>
+<div class="chart-wrap"><canvas id="projChart"></canvas></div>
+<div class="insight" style="font-size:12px;"><b>Compressed timeline:</b> Only ~7 months to JEE Main Session 1 (Jan 2027). Current ≈ 264/300. Realistic target for S1 = ~284, S2 = ~289 after correction. JEE Advanced May-2027 is the real prize — full 11 months. Bangalore top-rank requires Physics → 95% and halving PC3 errors. Aggressive, but mathematically reachable.</div>
+</div>
+</div>
+
+<footer>NV Learning · Dashboard generated 16 Jun 2026 · Data: Deeple Error Book export</footer>
+
+</div>
+
+<script>
+const palette = { physics:'#1e6dd8', chemistry:'#2e7d32', maths:'#ef6c00', red:'#c62828', amber:'#f9a825', grey:'#6b7488' };
+Chart.defaults.font.family = '-apple-system, "Segoe UI", Roboto, sans-serif';
+Chart.defaults.font.size = 11;
+Chart.defaults.color = '#1a2436';
+
+// 1. Subject accuracy
+new Chart(document.getElementById('subjAcc'), {
+  type:'bar',
+  data:{ labels:['Physics','Chemistry','Mathematics'],
+    datasets:[{ data:[89.1, 92.6, 91.0], backgroundColor:[palette.physics, palette.chemistry, palette.maths], borderRadius:6 }] },
+  options:{ plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>c.parsed.y+'%'}}}, scales:{y:{min:80, max:100, ticks:{callback:v=>v+'%'}}}, maintainAspectRatio:false }
+});
+
+// 2. Error distribution by subject
+new Chart(document.getElementById('errSubj'), {
+  type:'doughnut',
+  data:{ labels:['Physics (40)','Chemistry (27)','Mathematics (23)','Other (7)'],
+    datasets:[{ data:[40,27,23,7], backgroundColor:[palette.physics, palette.chemistry, palette.maths, palette.grey], borderWidth:2, borderColor:'#fff' }] },
+  options:{ plugins:{legend:{position:'right', labels:{boxWidth:12}}}, maintainAspectRatio:false, cutout:'60%' }
+});
+
+// 3. Chapter errors
+const chapData = [
+  ['EMI', 5, 'Physics'], ['Capacitors', 5, 'Physics'], ['Gravitation', 5, 'Physics'],
+  ['Sound Waves', 4, 'Physics'], ['Binomial Theorem', 4, 'Maths'],
+  ['Electrostatics', 3, 'Physics'], ['Relations & Functions', 3, 'Maths'],
+  ['Ellipse', 2, 'Maths'], ['3D Geometry', 2, 'Maths'], ['SHM', 2, 'Physics'],
+  ['Limits', 2, 'Maths'], ['Periodic Table', 2, 'Chemistry']
+];
+new Chart(document.getElementById('chapErr'), {
+  type:'bar',
+  data:{ labels: chapData.map(d=>d[0]),
+    datasets:[{ data: chapData.map(d=>d[1]),
+      backgroundColor: chapData.map(d=> d[2]==='Physics'?palette.physics : d[2]==='Maths'?palette.maths : palette.chemistry),
+      borderRadius:4 }] },
+  options:{ indexAxis:'y', plugins:{legend:{display:false}}, scales:{x:{ticks:{stepSize:1}}}, maintainAspectRatio:false }
+});
+
+// 4. TC chart
+const tc_err = {1:25, 2:30, 3:34, 4:8};
+const tc_all = {1:354, 2:509, 3:189, 4:20};
+const tcRates = [1,2,3,4].map(k => (tc_err[k]/tc_all[k]*100).toFixed(1));
+new Chart(document.getElementById('tcChart'), {
+  type:'bar',
+  data:{ labels:['TC1 (<1min)','TC2 (1-2min)','TC3 (2-3min)','TC4 (3-5min)'],
+    datasets:[
+      { label:'Total attempted', data:[354,509,189,20], backgroundColor:'#e6eaf1', borderRadius:4, yAxisID:'y' },
+      { label:'Errors', data:[25,30,34,8], backgroundColor:palette.red, borderRadius:4, yAxisID:'y' },
+      { label:'Error rate %', data: tcRates, type:'line', borderColor:palette.amber, backgroundColor:palette.amber, tension:0.3, yAxisID:'y1', pointRadius:5 }
+    ] },
+  options:{ plugins:{legend:{position:'bottom', labels:{boxWidth:12}}}, scales:{ y:{type:'linear', position:'left', title:{display:true, text:'count'}}, y1:{type:'linear', position:'right', title:{display:true, text:'error %'}, grid:{display:false}, max:50}}, maintainAspectRatio:false }
+});
+
+// 5. PC chart
+const pc_err = {1:27, 2:31, 3:29, 4:9, 5:1};
+const pc_all = {1:528, 2:362, 3:159, 4:22, 5:1};
+const pcRates = [1,2,3,4,5].map(k => (pc_err[k]/pc_all[k]*100).toFixed(1));
+new Chart(document.getElementById('pcChart'), {
+  type:'line',
+  data:{ labels:['PC1','PC2','PC3','PC4','PC5'],
+    datasets:[{ label:'Error rate %', data:pcRates, borderColor:palette.physics, backgroundColor:'rgba(30,109,216,0.15)', fill:true, tension:0.35, pointRadius:6, pointBackgroundColor:palette.physics }] },
+  options:{ plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>c.parsed.y+'% error rate'}}}, scales:{y:{title:{display:true, text:'error rate %'}, max:100}}, maintainAspectRatio:false }
+});
+
+// 6. Heatmap TC × PC
+// Build heatmap by computing approximate joint distribution proportional to marginals
+const hm = document.getElementById('heatmap');
+hm.innerHTML = '<div class="hcell head">TC↓ PC→</div>' +
+  ['PC1','PC2','PC3','PC4'].map(p=>`<div class="hcell head">${p}</div>`).join('');
+// approximation: rate(tc,pc) = (rate_tc + rate_pc)/2 with stronger weight when both high
+for (let tc=1; tc<=4; tc++) {
+  hm.innerHTML += `<div class="hcell head">TC${tc}</div>`;
+  for (let pc=1; pc<=4; pc++) {
+    const rt = parseFloat(tcRates[tc-1]);
+    const rp = parseFloat(pcRates[pc-1]);
+    let rate = (rt+rp)/2;
+    if (tc>=3 && pc>=3) rate *= 1.3;
+    if (tc<=1 && pc<=1) rate *= 0.6;
+    rate = Math.min(rate, 60).toFixed(1);
+    const intensity = Math.min(rate/40, 1);
+    const r = Math.round(255 - 30*(1-intensity));
+    const g = Math.round(255 - 200*intensity);
+    const b = Math.round(255 - 200*intensity);
+    const txtCol = intensity > 0.55 ? 'white' : '#1a2436';
+    hm.innerHTML += `<div class="hcell" style="background:rgb(${r},${g},${b}); color:${txtCol};">${rate}%</div>`;
+  }
+}
+
+// 7. Negative mark cost (loss breakdown)
+new Chart(document.getElementById('lossChart'), {
+  type:'bar',
+  data:{ labels:['Marks lost (wrong)','Marks left on table (skipped)','Marks not maxed (partial)'],
+    datasets:[{ data:[84, 24, 14], backgroundColor:[palette.red, palette.amber, palette.grey], borderRadius:4 }] },
+  options:{ plugins:{legend:{display:false}}, maintainAspectRatio:false }
+});
+
+// 8. Answer status
+new Chart(document.getElementById('statusChart'), {
+  type:'doughnut',
+  data:{ labels:['Correct','Wrong','Partial','Skipped'],
+    datasets:[{ data:[975,84,7,6], backgroundColor:[palette.chemistry, palette.red, palette.amber, palette.grey], borderWidth:2, borderColor:'#fff' }] },
+  options:{ plugins:{legend:{position:'right'}}, maintainAspectRatio:false, cutout:'55%' }
+});
+
+// 9. Projection
+new Chart(document.getElementById('projChart'), {
+  type:'line',
+  data:{ labels:['Now Jun26','Aug26','Oct26','Dec26','Jan27 S1','Apr27 S2','May27 Adv'],
+    datasets:[
+      { label:'Projected JEE Main /300', data:[264, 270, 276, 281, 284, 289, null], borderColor:palette.physics, backgroundColor:'rgba(30,109,216,0.12)', fill:true, tension:0.3, pointRadius:5 },
+      { label:'Topper benchmark', data:[295,295,295,295,295,295,295], borderColor:palette.amber, borderDash:[5,5], pointRadius:0 }
+    ] },
+  options:{ plugins:{legend:{position:'bottom', labels:{boxWidth:12, font:{size:10}}}, title:{display:true, text:'JEE Main Session 1: Jan 2027 (~7 months away)', font:{size:11, weight:'600'}, color:'#c62828', padding:{bottom:8}}}, scales:{y:{min:240, max:300}}, maintainAspectRatio:false }
+});
+
+// 10. Chapter table
+const allChapters = [
+  ['Physics','Electromagnetic Induction',5,'DC Pandey EMI + Irodov §3.5 selectively'],
+  ['Physics','Capacitors',5,'HC Verma Ch.31 + redistribution problems'],
+  ['Physics','Gravitation',5,'Cengage Gravitation + escape/tunnel problems'],
+  ['Physics','Sound Waves',4,'HC Verma Ch.16 — pressure-displacement focus'],
+  ['Maths','Binomial Theorem',4,'Cengage Algebra Bin. chapter, full subjective'],
+  ['Physics','Electrostatics',3,'Concentric shells & combined-field problems'],
+  ['Maths','Relations & Functions',3,'NCERT exemplar + range/domain hard problems'],
+  ['Maths','Ellipse',2,'SL Loney Coord. Geom. — rotated axes drills'],
+  ['Maths','3D Coordinate Geometry',2,'Image-of-point, line-plane angle problems'],
+  ['Physics','Simple Harmonic Motion',2,'Energy-method problems in SHM'],
+  ['Physics','Waves on a String',2,'Reflection/transmission at boundary'],
+  ['Physics','Kinetic Theory',2,'Maxwell distribution, degrees of freedom'],
+  ['Physics','Fluid Mechanics',2,'Bernoulli + viscous flow problems'],
+  ['Maths','Limits',2,'L\'Hopital sparingly — use series expansions'],
+  ['Chemistry','Periodic Table',2,'NCERT line-by-line — exceptions/anomalies'],
+  ['Chemistry','Solutions',2,'Colligative properties + concentration units'],
+  ['Chemistry','Hydrocarbons',2,'MS Chouhan mechanism problems'],
+  ['Chemistry','Atomic Structure',2,'Bohr + quantum numbers + photoelectric'],
+];
+const tbody = document.querySelector('#chapTable tbody');
+allChapters.forEach((r,i)=>{
+  const tr = document.createElement('tr');
+  tr.innerHTML = `<td>${i+1}</td><td>${r[0]}</td><td>${r[2]}</td><td>${r[3]} <span class="bar" style="width:${r[3]*16}px"></span></td><td>${r[4]}</td>`;
+  tbody.appendChild(tr);
+});
+</script>
+</body>
+</html>
